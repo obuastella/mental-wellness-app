@@ -144,7 +144,7 @@ const home = () => {
       </LinearGradient>
 
       {/* Quick Mood Entry */}
-      <View className="px-6 mt-6">
+      {/* <View className="px-6 mt-6">
         <Text className="text-xl font-bold text-gray-800 mb-4">
           How are you feeling?
         </Text>
@@ -154,7 +154,7 @@ const home = () => {
           <MoodShortcut emoji="😐" mood="Okay" color="#F59E0B" />
           <MoodShortcut emoji="😔" mood="Down" color="#EF4444" />
         </View>
-      </View>
+      </View> */}
       {/* Stats Overview */}
       <View className="px-6 mt-6 mb-6">
         <Text className="text-xl font-bold text-gray-800 mb-4">
