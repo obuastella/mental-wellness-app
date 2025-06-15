@@ -7,27 +7,31 @@ const _layout = () => {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#3B82F6", // Blue-500
-        tabBarInactiveTintColor: "#9CA3AF", // Gray-400
+        tabBarActiveTintColor: "#A855F7", // Purple-500 to match the theme
+        tabBarInactiveTintColor: "#6B7280", // Gray-500 for better contrast on dark
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
+          backgroundColor: "rgba(31, 41, 55, 0.8)", // Dark gray with transparency
           borderTopWidth: 1,
-          borderTopColor: "#E5E7EB", // Gray-200
+          borderTopColor: "rgba(75, 85, 99, 0.3)", // Subtle gray border
           height: 80,
           paddingBottom: 20,
           paddingTop: 10,
           shadowColor: "#000",
           shadowOffset: {
             width: 0,
-            height: -2,
+            height: -4,
           },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 10,
+          shadowOpacity: 0.3,
+          shadowRadius: 12,
+          elevation: 15,
           borderRadius: 20,
           marginHorizontal: 20,
           marginBottom: 20,
           position: "absolute",
+          // Glass morphism effect
+          backdropFilter: "blur(20px)",
+          borderWidth: 1,
+          borderColor: "rgba(255, 255, 255, 0.1)",
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -38,22 +42,24 @@ const _layout = () => {
           marginBottom: -3,
         },
         headerStyle: {
-          backgroundColor: "#FFFFFF",
+          backgroundColor: "#111827", // Dark background
           shadowColor: "#000",
           shadowOffset: {
             width: 0,
             height: 2,
           },
-          shadowOpacity: 0.1,
+          shadowOpacity: 0.3,
           shadowRadius: 8,
           elevation: 5,
+          borderBottomWidth: 1,
+          borderBottomColor: "rgba(75, 85, 99, 0.3)",
         },
         headerTitleStyle: {
           fontWeight: "700",
           fontSize: 18,
-          color: "#1F2937", // Gray-800
+          color: "#FFFFFF", // White text for dark theme
         },
-        headerTintColor: "#3B82F6",
+        headerTintColor: "#A855F7", // Purple tint to match active tab
       }}
     >
       <Tabs.Screen
@@ -103,12 +109,23 @@ const _layout = () => {
         options={{
           title: "Profile",
           headerShown: false,
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? "person" : "person-outline"}
-              size={size}
-              color={color}
-            />
+          tabBarIcon: ({ color, focused }) => (
+            <View
+              style={{
+                backgroundColor: focused
+                  ? "rgba(168, 85, 247, 0.2)"
+                  : "transparent",
+                borderRadius: 12,
+                padding: 8,
+                marginTop: -4,
+              }}
+            >
+              <Ionicons
+                name={focused ? "person" : "person-outline"}
+                size={20}
+                color={color}
+              />
+            </View>
           ),
         }}
       />

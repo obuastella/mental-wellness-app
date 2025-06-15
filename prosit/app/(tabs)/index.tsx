@@ -53,28 +53,26 @@ const home = () => {
     href,
   }: any) => (
     <TouchableOpacity
-      className="bg-white rounded-2xl p-4 shadow-sm mb-4 border border-gray-100"
+      className="bg-gray-800/50 backdrop-blur-xl rounded-2xl p-4 shadow-lg mb-4 border border-gray-700/50"
       style={{
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 8,
       }}
       onPress={onPress}
     >
       <View className="flex-row items-center">
         <View
           className={`w-12 h-12 rounded-full items-center justify-center mr-4`}
-          style={{ backgroundColor: color + "20" }}
+          style={{ backgroundColor: color + "30" }}
         >
           <Ionicons name={icon} size={24} color={color} />
         </View>
         <View className="flex-1">
-          <Text className="text-lg font-semibold text-gray-800 mb-1">
-            {title}
-          </Text>
-          <Text className="text-sm text-gray-600">{description}</Text>
+          <Text className="text-lg font-semibold text-white mb-1">{title}</Text>
+          <Text className="text-sm text-gray-300">{description}</Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
       </View>
@@ -83,39 +81,39 @@ const home = () => {
 
   const MoodShortcut = ({ emoji, mood, color }: any) => (
     <TouchableOpacity
-      className="bg-white rounded-xl p-3 items-center shadow-sm border border-gray-100 mx-1"
+      className="bg-gray-800/50 backdrop-blur-xl rounded-xl p-3 items-center shadow-lg border border-gray-700/50 mx-1"
       style={{
         width: (width - 80) / 4,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
       }}
     >
       <Text className="text-2xl mb-2">{emoji}</Text>
-      <Text className="text-xs font-medium text-gray-700">{mood}</Text>
+      <Text className="text-xs font-medium text-gray-200">{mood}</Text>
     </TouchableOpacity>
   );
 
   return (
     <ScrollView
-      className="flex-1 bg-gray-50"
+      className="flex-1 bg-gray-900"
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 100 }}
     >
       {/* Header Section */}
       <LinearGradient
-        colors={["#667eea", "#764ba2"]}
+        colors={["#1e1b4b", "#312e81", "#4c1d95"]}
         className="px-6 pt-16 pb-8 rounded-b-3xl"
         style={{ paddingTop: 60 }}
       >
         <View className="px-4 flex-row justify-between items-center mb-6">
           <View>
             <Text className="text-white text-2xl font-bold">
-              {getGreeting()}, Stella
+              {getGreeting()}, Doney
             </Text>
-            <Text className="text-white/80 text-base mt-1">
+            <Text className="text-purple-200 text-base mt-1">
               {currentTime.toLocaleDateString("en-US", {
                 weekday: "long",
                 month: "long",
@@ -124,7 +122,7 @@ const home = () => {
             </Text>
           </View>
           <TouchableOpacity
-            className="w-10 h-10 bg-white/20 rounded-full items-center justify-center"
+            className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-full items-center justify-center border border-white/20"
             onPress={() => {
               router.dismissAll();
               router.replace("/");
@@ -135,17 +133,17 @@ const home = () => {
         </View>
 
         {/* Daily Quote */}
-        <View className="px-4 bg-white/20 rounded-2xl p-4 backdrop-blur-sm">
+        <View className="px-4 bg-black/20 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
           <Text className="text-white text-lg font-medium leading-6 mb-2">
             "{dailyQuote.text}"
           </Text>
-          <Text className="text-white/80 text-sm">— {dailyQuote.author}</Text>
+          <Text className="text-purple-200 text-sm">— {dailyQuote.author}</Text>
         </View>
       </LinearGradient>
 
       {/* Quick Mood Entry */}
       {/* <View className="px-6 mt-6">
-        <Text className="text-xl font-bold text-gray-800 mb-4">
+        <Text className="text-xl font-bold text-white mb-4">
           How are you feeling?
         </Text>
         <View className="flex-row justify-between">
@@ -155,41 +153,41 @@ const home = () => {
           <MoodShortcut emoji="😔" mood="Down" color="#EF4444" />
         </View>
       </View> */}
+
       {/* Stats Overview */}
       <View className="px-6 mt-6 mb-6">
-        <Text className="text-xl font-bold text-gray-800 mb-4">
+        <Text className="text-xl font-bold text-white mb-4">
           Your Wellness Journey
         </Text>
-        <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <View className="bg-gray-800/50 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-gray-700/50">
           <View className="flex-row justify-between items-center">
             <View className="items-center flex-1">
-              <Text className="text-2xl font-bold text-purple-600">7</Text>
-              <Text className="text-sm text-gray-600 mt-1">Day Streak</Text>
+              <Text className="text-2xl font-bold text-purple-400">7</Text>
+              <Text className="text-sm text-gray-300 mt-1">Day Streak</Text>
             </View>
-            <View className="w-px h-12 bg-gray-200" />
+            <View className="w-px h-12 bg-gray-600" />
             <View className="items-center flex-1">
-              <Text className="text-2xl font-bold text-blue-600">24</Text>
-              <Text className="text-sm text-gray-600 mt-1">Entries</Text>
+              <Text className="text-2xl font-bold text-blue-400">24</Text>
+              <Text className="text-sm text-gray-300 mt-1">Entries</Text>
             </View>
-            <View className="w-px h-12 bg-gray-200" />
+            <View className="w-px h-12 bg-gray-600" />
             <View className="items-center flex-1">
-              <Text className="text-2xl font-bold text-green-600">85%</Text>
-              <Text className="text-sm text-gray-600 mt-1">Positive</Text>
+              <Text className="text-2xl font-bold text-green-400">85%</Text>
+              <Text className="text-sm text-gray-300 mt-1">Positive</Text>
             </View>
           </View>
         </View>
       </View>
+
       {/* Quick Actions */}
       <View className="px-6 mt-8">
-        <Text className="text-xl font-bold text-gray-800 mb-4">
-          Quick Actions
-        </Text>
+        <Text className="text-xl font-bold text-white mb-4">Quick Actions</Text>
 
         <QuickActionCard
           icon="create-outline"
           title="Write Journal Entry"
           description="Express your thoughts and feelings"
-          color="#8B5CF6"
+          color="#A855F7"
           href="/journal"
         />
 
@@ -206,12 +204,6 @@ const home = () => {
           title="AI Emotion Analysis"
           description="Get insights into your emotional patterns"
           color="#EC4899"
-        />
-        <QuickActionCard
-          icon="chatbubbles-outline"
-          title="Talk to Prosit AI"
-          description="Chat with your AI wellness companion"
-          color="#F59E0B"
         />
       </View>
     </ScrollView>
