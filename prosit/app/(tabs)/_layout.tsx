@@ -104,7 +104,7 @@ const _layout = () => {
           ),
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
@@ -128,7 +128,7 @@ const _layout = () => {
             </View>
           ),
         }}
-      />
+      /> */}
     </Tabs>
   );
 };

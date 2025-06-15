@@ -10,7 +10,9 @@ import React, { useState, useEffect } from "react";
 import { Link, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-
+import { useRouter } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
+import { StackActions } from "@react-navigation/native";
 const { width } = Dimensions.get("window");
 
 const home = () => {
@@ -61,7 +63,7 @@ const home = () => {
         shadowRadius: 12,
         elevation: 8,
       }}
-      onPress={onPress}
+      onPress={() => router.push(href)}
     >
       <View className="flex-row items-center">
         <View
@@ -95,7 +97,9 @@ const home = () => {
       <Text className="text-xs font-medium text-gray-200">{mood}</Text>
     </TouchableOpacity>
   );
-
+  const handleLogout = () => {
+    router.navigate("/");
+  };
   return (
     <ScrollView
       className="flex-1 bg-gray-900"
@@ -123,10 +127,7 @@ const home = () => {
           </View>
           <TouchableOpacity
             className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-full items-center justify-center border border-white/20"
-            onPress={() => {
-              router.dismissAll();
-              router.replace("/");
-            }}
+            onPress={handleLogout}
           >
             <Ionicons name="log-out-outline" size={20} color="white" />
           </TouchableOpacity>
@@ -162,17 +163,17 @@ const home = () => {
         <View className="bg-gray-800/50 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-gray-700/50">
           <View className="flex-row justify-between items-center">
             <View className="items-center flex-1">
-              <Text className="text-2xl font-bold text-purple-400">7</Text>
+              <Text className="text-2xl font-bold text-purple-400">0</Text>
               <Text className="text-sm text-gray-300 mt-1">Day Streak</Text>
             </View>
             <View className="w-px h-12 bg-gray-600" />
             <View className="items-center flex-1">
-              <Text className="text-2xl font-bold text-blue-400">24</Text>
+              <Text className="text-2xl font-bold text-blue-400">2</Text>
               <Text className="text-sm text-gray-300 mt-1">Entries</Text>
             </View>
             <View className="w-px h-12 bg-gray-600" />
             <View className="items-center flex-1">
-              <Text className="text-2xl font-bold text-green-400">85%</Text>
+              <Text className="text-2xl font-bold text-green-400">5%</Text>
               <Text className="text-sm text-gray-300 mt-1">Positive</Text>
             </View>
           </View>
@@ -204,6 +205,7 @@ const home = () => {
           title="AI Emotion Analysis"
           description="Get insights into your emotional patterns"
           color="#EC4899"
+          href="/history"
         />
       </View>
     </ScrollView>
