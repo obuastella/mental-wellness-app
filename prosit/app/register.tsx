@@ -31,12 +31,20 @@ export default function Register() {
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
-
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
   const handleRegister = async () => {
     const { fullName, email, password, confirmPassword } = formData;
 
     if (!fullName || !email || !password || !confirmPassword) {
       alert("Please fill in all fields");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      alert("Please enter a valid email address");
       return;
     }
 
@@ -56,6 +64,7 @@ export default function Register() {
       alert("Registration successful!");
       router.replace("/(tabs)");
     }, 1500);
+    console.log("User registering: ", formData);
   };
 
   return (
@@ -125,6 +134,7 @@ export default function Register() {
             secureTextEntry={!showPassword}
             rightIcon={showPassword ? "eye-outline" : "eye-off-outline"}
             onRightIconPress={() => setShowPassword(!showPassword)}
+            required
           />
 
           {/* Confirm Password */}
@@ -141,6 +151,7 @@ export default function Register() {
             onRightIconPress={() =>
               setShowConfirmPassword(!showConfirmPassword)
             }
+            required
           />
 
           {/* Register Button */}
