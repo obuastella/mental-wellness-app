@@ -14,6 +14,12 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
+import { auth, db } from "../firebaseConfig";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
+import { collection, addDoc } from "firebase/firestore";
 
 const { height } = Dimensions.get("window");
 
@@ -59,14 +65,43 @@ export default function Register() {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      alert("Registration successful!");
-      router.replace("/(tabs)");
-    }, 1500);
-    console.log("User registering: ", formData);
-  };
+    try {
+      // Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
+      console.log("User created:", user.uid);
 
+      // Send email verification
+      await sendEmailVerification(user);
+      console.log("Verification email sent");
+
+      // Save additional user details in Firestore
+      await addDoc(collection(db, "Users"), {
+        uid: user.uid,
+        fullName: fullName,
+        email: email,
+        emailVerified: false,
+        createdAt: new Date(),
+      });
+
+      setIsLoading(false);
+
+      // Navigate directly to verification screen
+      router.replace("/verify");
+    } catch (error: any) {
+      setIsLoading(false);
+      if (error.message === "Firebase: Error (auth/email-already-in-use).") {
+        alert("Email already in use");
+      } else {
+        alert(error.message);
+      }
+      console.error("Registration error:", error.message);
+    }
+  };
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
