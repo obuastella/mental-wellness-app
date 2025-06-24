@@ -54,7 +54,7 @@ export default function Register() {
     setTimeout(() => {
       setIsLoading(false);
       alert("Registration successful!");
-      router.replace("/(tabs)");
+      // router.replace("/(tabs)");
     }, 1500);
   };
 
