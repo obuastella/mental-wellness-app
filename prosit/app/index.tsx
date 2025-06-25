@@ -10,7 +10,7 @@ import {
   Dimensions,
 } from "react-native";
 import React, { useState } from "react";
-import { Link, router } from "expo-router";
+import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";

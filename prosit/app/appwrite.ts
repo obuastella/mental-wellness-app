@@ -1,5 +1,3 @@
-// appwrite.ts
-
 import { Client } from "appwrite";
 
 const client = new Client();
