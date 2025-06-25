@@ -254,10 +254,6 @@ const History = () => {
           during weekday evenings. Consider scheduling relaxation time after 6
           PM on weekdays to maintain emotional balance.
         </Text>
-        <TouchableOpacity style={styles.insightButton} activeOpacity={0.8}>
-          <Text style={styles.insightButtonText}>View Detailed Analysis</Text>
-          <Ionicons name="arrow-forward" size={16} color="#A855F7" />
-        </TouchableOpacity>
       </View>
 
       {/* Bottom Padding */}

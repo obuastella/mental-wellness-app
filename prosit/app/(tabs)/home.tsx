@@ -6,39 +6,56 @@ import {
   TouchableOpacity,
   Dimensions,
 } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useNavigation } from "@react-navigation/native";
-import { StackActions } from "@react-navigation/native";
+import { account, databases } from "@/lib/appwrite";
+import { COLLECTION_ID, DATABASE_ID } from "../config/prositDB";
+import { Query } from "react-native-appwrite";
 const { width } = Dimensions.get("window");
 
 const home = () => {
+  const router = useRouter();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [dailyQuote, setDailyQuote] = useState({
     text: "Every moment is a fresh beginning.",
     author: "T.S. Eliot",
   });
+  const [userName, setUserName] = useState("");
 
-  // Sample daily quotes
-  const quotes = [
-    { text: "Every moment is a fresh beginning.", author: "T.S. Eliot" },
-    {
-      text: "Your mental health is a priority. Your happiness is essential.",
-      author: "Anonymous",
-    },
-    { text: "Progress, not perfection.", author: "Anonymous" },
-    { text: "You are stronger than you think.", author: "Anonymous" },
-    { text: "Healing isn't linear, and that's okay.", author: "Anonymous" },
-  ];
-
+  const [stats, setStats] = useState<any>(null);
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await account.get();
+        setUserName(user.name);
+      } catch (error) {
+        console.error("❌ Failed to fetch user:", error);
+      }
+    };
+    fetchUser();
+    const fetchStats = async () => {
+      const user = await account.get();
 
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTION_ID,
+        [Query.equal("userId", user.$id)]
+      );
+
+      if (response.documents.length > 0) {
+        setStats(response.documents[0]);
+      }
+    };
+
+    fetchStats();
+  }, []);
   const getGreeting = () => {
     const hour = currentTime.getHours();
     if (hour < 12) return "Good Morning";
@@ -80,26 +97,16 @@ const home = () => {
       </View>
     </TouchableOpacity>
   );
-
-  const MoodShortcut = ({ emoji, mood, color }: any) => (
-    <TouchableOpacity
-      className="bg-gray-800/50 backdrop-blur-xl rounded-xl p-3 items-center shadow-lg border border-gray-700/50 mx-1"
-      style={{
-        width: (width - 80) / 4,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-      }}
-    >
-      <Text className="text-2xl mb-2">{emoji}</Text>
-      <Text className="text-xs font-medium text-gray-200">{mood}</Text>
-    </TouchableOpacity>
-  );
-  const handleLogout = () => {
-    router.navigate("/");
-  };
+  const handleLogout = useCallback(async () => {
+    try {
+      await account.deleteSession("current");
+      console.log("User logged out");
+      router.replace("/");
+    } catch (error) {
+      console.error("❌ Logout error:", error);
+      alert("Failed to log out. Please try again.");
+    }
+  }, [router]);
   return (
     <ScrollView
       className="flex-1 bg-gray-900"
@@ -115,7 +122,7 @@ const home = () => {
         <View className="px-4 flex-row justify-between items-center mb-6">
           <View>
             <Text className="text-white text-2xl font-bold">
-              {getGreeting()}, Doney
+              {getGreeting()}, {userName}
             </Text>
             <Text className="text-purple-200 text-base mt-1">
               {currentTime.toLocaleDateString("en-US", {
@@ -142,19 +149,6 @@ const home = () => {
         </View>
       </LinearGradient>
 
-      {/* Quick Mood Entry */}
-      {/* <View className="px-6 mt-6">
-        <Text className="text-xl font-bold text-white mb-4">
-          How are you feeling?
-        </Text>
-        <View className="flex-row justify-between">
-          <MoodShortcut emoji="😊" mood="Great" color="#10B981" />
-          <MoodShortcut emoji="😌" mood="Good" color="#3B82F6" />
-          <MoodShortcut emoji="😐" mood="Okay" color="#F59E0B" />
-          <MoodShortcut emoji="😔" mood="Down" color="#EF4444" />
-        </View>
-      </View> */}
-
       {/* Stats Overview */}
       <View className="px-6 mt-6 mb-6">
         <Text className="text-xl font-bold text-white mb-4">
@@ -163,17 +157,23 @@ const home = () => {
         <View className="bg-gray-800/50 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-gray-700/50">
           <View className="flex-row justify-between items-center">
             <View className="items-center flex-1">
-              <Text className="text-2xl font-bold text-purple-400">0</Text>
+              <Text className="text-2xl font-bold text-purple-400">
+                {stats?.dayStreak}
+              </Text>
               <Text className="text-sm text-gray-300 mt-1">Day Streak</Text>
             </View>
             <View className="w-px h-12 bg-gray-600" />
             <View className="items-center flex-1">
-              <Text className="text-2xl font-bold text-blue-400">2</Text>
+              <Text className="text-2xl font-bold text-blue-400">
+                {stats?.entries}
+              </Text>
               <Text className="text-sm text-gray-300 mt-1">Entries</Text>
             </View>
             <View className="w-px h-12 bg-gray-600" />
             <View className="items-center flex-1">
-              <Text className="text-2xl font-bold text-green-400">5%</Text>
+              <Text className="text-2xl font-bold text-green-400">
+                {stats?.positivePercent}%
+              </Text>
               <Text className="text-sm text-gray-300 mt-1">Positive</Text>
             </View>
           </View>

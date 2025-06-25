@@ -10,10 +10,12 @@ import {
   Dimensions,
 } from "react-native";
 import React, { useState } from "react";
-import { Link, router } from "expo-router";
+import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
+import { useRouter } from "expo-router";
+import { account } from "@/lib/appwrite";
 
 const { width, height } = Dimensions.get("window");
 
@@ -23,13 +25,37 @@ export default function Index() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const router = useRouter();
+
   const handleLogin = async () => {
+    if (!email || !password) {
+      alert("Error:  Please enter both email and password");
+      return;
+    }
+
     setIsLoading(true);
-    // Simulate login process
-    setTimeout(() => {
+
+    try {
+      // 🔐 Attempt to create a session
+      const session = await account.createEmailPasswordSession(email, password);
+      console.log("✅ Logged in:", session);
+
+      // 🎯 Navigate to your home screen
+      router.replace("/(tabs)/home");
+    } catch (error: any) {
+      console.error("❌ Login error:", error);
+
+      if (error.code === 401) {
+        // Unauthorized: likely wrong password
+        alert(
+          "Invalid email or password. If you don't have an account, please register."
+        );
+      } else {
+        alert(`Login Error", ${error.message} || "Something went wrong`);
+      }
+    } finally {
       setIsLoading(false);
-      router.replace("/(tabs)");
-    }, 1500);
+    }
   };
 
   return (

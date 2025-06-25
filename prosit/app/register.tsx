@@ -1,62 +1,224 @@
+import React, { useState, useCallback } from "react";
 import {
-  StyleSheet,
-  Text,
   View,
-  TextInput,
+  Text,
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  StyleSheet,
+  Alert,
+  TextInput,
+  KeyboardTypeOptions,
 } from "react-native";
-import React, { useState } from "react";
-import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import { Client, Account, ID } from "react-native-appwrite";
+import { router } from "expo-router";
+import { useRouter } from "expo-router";
+import { databases } from "@/lib/appwrite";
+import { COLLECTION_ID, DATABASE_ID } from "./config/prositDB";
+
+// Initialize Appwrite
+const client = new Client();
+client
+  .setEndpoint("https://fra.cloud.appwrite.io/v1") // Your endpoint
+  .setProject("685ae1000013f6625103") // Your Project ID
+  .setPlatform("prosit"); // Your package name
+
+const account = new Account(client);
 
 const { height } = Dimensions.get("window");
 
+// Define types for form data
+interface FormData {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+// Define types for InputField props
+interface InputFieldProps {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  placeholder: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  secureTextEntry?: boolean;
+  rightIcon?: keyof typeof Ionicons.glyphMap;
+  onRightIconPress?: () => void;
+  keyboardType?: KeyboardTypeOptions;
+}
+
+// Move InputField component outside of the main component to prevent recreation
+const InputField: React.FC<InputFieldProps> = React.memo(
+  ({
+    label,
+    icon,
+    placeholder,
+    value,
+    onChangeText,
+    secureTextEntry = false,
+    rightIcon,
+    onRightIconPress,
+    keyboardType = "default",
+  }) => (
+    <View className="mb-4">
+      <Text className="text-gray-700 text-sm font-medium mb-2">{label}</Text>
+      <View className="flex-row items-center bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
+        <Ionicons name={icon} size={20} color="#9CA3AF" className="mr-3" />
+        <TextInput
+          style={{ flex: 1, color: "#111", fontSize: 16 }}
+          placeholder={placeholder}
+          placeholderTextColor="#9CA3AF"
+          value={value}
+          onChangeText={onChangeText}
+          secureTextEntry={secureTextEntry}
+          keyboardType={keyboardType}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="off"
+        />
+        {rightIcon && (
+          <TouchableOpacity onPress={onRightIconPress}>
+            <Ionicons name={rightIcon} size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  )
+);
+
 export default function Register() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const router = useRouter();
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  // Use useCallback to prevent function recreation on every render
+  const handleInputChange = useCallback(
+    (field: keyof FormData, value: string) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    },
+    []
+  );
 
-  const handleRegister = async () => {
+  // Memoize individual input handlers
+  const handleFullNameChange = useCallback(
+    (value: string) => {
+      handleInputChange("fullName", value);
+    },
+    [handleInputChange]
+  );
+
+  const handleEmailChange = useCallback(
+    (value: string) => {
+      handleInputChange("email", value);
+    },
+    [handleInputChange]
+  );
+
+  const handlePasswordChange = useCallback(
+    (value: string) => {
+      handleInputChange("password", value);
+    },
+    [handleInputChange]
+  );
+
+  const handleConfirmPasswordChange = useCallback(
+    (value: string) => {
+      handleInputChange("confirmPassword", value);
+    },
+    [handleInputChange]
+  );
+
+  const toggleShowPassword = useCallback(() => {
+    setShowPassword((prev) => !prev);
+  }, []);
+
+  const toggleShowConfirmPassword = useCallback(() => {
+    setShowConfirmPassword((prev) => !prev);
+  }, []);
+
+  const handleRegister = async (): Promise<void> => {
     const { fullName, email, password, confirmPassword } = formData;
 
-    if (!fullName || !email || !password || !confirmPassword) {
-      alert("Please fill in all fields");
+    if (!email || !password || !fullName) {
+      alert("Error: Please fill in all fields");
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      alert("Error: Passwords do not match");
       return;
     }
 
-    if (password.length < 6) {
-      alert("Password must be at least 6 characters long");
+    if (password.length < 8) {
+      alert("Error: Password must be at least 8 characters long");
       return;
     }
 
     setIsLoading(true);
-    setTimeout(() => {
+
+    try {
+      const newAccount = await account.create(
+        ID.unique(),
+        email,
+        password,
+        fullName
+      );
+      console.log("✅ Account created:", newAccount);
+
+      // Create default stats document
+      await databases.createDocument(DATABASE_ID, COLLECTION_ID, ID.unique(), {
+        userId: newAccount.$id,
+        dayStreak: 0,
+        entries: 0,
+        positivePercent: 0,
+      });
+      // 🚫 End the session if auto-logged in
+      try {
+        await account.deleteSession("current");
+        console.log("🛑 Auto-session deleted after registration");
+      } catch (err) {
+        console.log("⚠️ No active session to delete or already deleted");
+      }
+
+      alert(
+        "Registration Successful! You can now log in with your credentials."
+      );
+      router.replace("/"); // redirect to login
+    } catch (error: any) {
+      console.error("❌ Registration error:", error);
+
+      if (error.code === 409) {
+        alert("Error: An account with this email already exists");
+      } else if (error.code === 400) {
+        alert("Error: Invalid email or password format");
+      } else {
+        alert(`Registration Failed: ${error.message}`);
+      }
+    } finally {
       setIsLoading(false);
-      alert("Registration successful!");
-      router.replace("/(tabs)");
-    }, 1500);
+    }
   };
+
+  const navigateToLogin = useCallback(() => {
+    router.replace("/");
+  }, [router]);
 
   return (
     <KeyboardAvoidingView
@@ -68,6 +230,7 @@ export default function Register() {
         className="flex-1"
         contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
         <LinearGradient
@@ -75,7 +238,7 @@ export default function Register() {
           className="flex-1 justify-center items-center px-8"
           style={{ minHeight: height * 0.4 }}
         >
-          <View className=" bg-white/10 backdrop-blur-sm rounded-full p-10 mb-6 shadow-lg">
+          <View className="bg-white/10 backdrop-blur-sm rounded-full p-10 mb-6 shadow-lg">
             <Ionicons
               className="mt-4 mx-auto"
               name="person-add-outline"
@@ -102,7 +265,7 @@ export default function Register() {
             icon="person-outline"
             placeholder="Enter your full name"
             value={formData.fullName}
-            onChangeText={(val: any) => handleInputChange("fullName", val)}
+            onChangeText={handleFullNameChange}
           />
 
           {/* Email */}
@@ -111,7 +274,7 @@ export default function Register() {
             icon="mail-outline"
             placeholder="Enter your email"
             value={formData.email}
-            onChangeText={(val: any) => handleInputChange("email", val)}
+            onChangeText={handleEmailChange}
             keyboardType="email-address"
           />
 
@@ -121,10 +284,10 @@ export default function Register() {
             icon="lock-closed-outline"
             placeholder="Enter your password"
             value={formData.password}
-            onChangeText={(val: any) => handleInputChange("password", val)}
+            onChangeText={handlePasswordChange}
             secureTextEntry={!showPassword}
             rightIcon={showPassword ? "eye-outline" : "eye-off-outline"}
-            onRightIconPress={() => setShowPassword(!showPassword)}
+            onRightIconPress={toggleShowPassword}
           />
 
           {/* Confirm Password */}
@@ -133,14 +296,10 @@ export default function Register() {
             icon="lock-closed-outline"
             placeholder="Confirm your password"
             value={formData.confirmPassword}
-            onChangeText={(val: any) =>
-              handleInputChange("confirmPassword", val)
-            }
+            onChangeText={handleConfirmPasswordChange}
             secureTextEntry={!showConfirmPassword}
             rightIcon={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
-            onRightIconPress={() =>
-              setShowConfirmPassword(!showConfirmPassword)
-            }
+            onRightIconPress={toggleShowConfirmPassword}
           />
 
           {/* Register Button */}
@@ -170,7 +329,7 @@ export default function Register() {
           {/* Footer */}
           <View className="flex-row justify-center mt-6">
             <Text className="text-gray-600">Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.replace("/")}>
+            <TouchableOpacity onPress={navigateToLogin}>
               <Text className="text-primary font-semibold">Sign In</Text>
             </TouchableOpacity>
           </View>
@@ -179,41 +338,6 @@ export default function Register() {
     </KeyboardAvoidingView>
   );
 }
-
-// Reusable InputField Component
-const InputField = ({
-  label,
-  icon,
-  placeholder,
-  value,
-  onChangeText,
-  secureTextEntry,
-  keyboardType,
-  rightIcon,
-  onRightIconPress,
-}: any) => (
-  <View className="mb-5">
-    <Text className="text-gray-700 text-sm font-medium mb-2 ml-1">{label}</Text>
-    <View className="bg-gray-50 rounded-xl border border-gray-200 flex-row items-center px-4 py-4">
-      <Ionicons name={icon} size={20} color="#9CA3AF" />
-      <TextInput
-        className="flex-1 ml-3 text-gray-800 text-base"
-        placeholder={placeholder}
-        placeholderTextColor="#9CA3AF"
-        value={value}
-        onChangeText={onChangeText}
-        secureTextEntry={secureTextEntry}
-        keyboardType={keyboardType}
-        autoCapitalize="none"
-      />
-      {rightIcon && (
-        <TouchableOpacity onPress={onRightIconPress} className="ml-2">
-          <Ionicons name={rightIcon} size={20} color="#9CA3AF" />
-        </TouchableOpacity>
-      )}
-    </View>
-  </View>
-);
 
 const styles = StyleSheet.create({
   shadow: {
