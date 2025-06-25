@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useNavigation } from "@react-navigation/native";
 import { StackActions } from "@react-navigation/native";
+import { account } from "@/lib/appwrite";
 const { width } = Dimensions.get("window");
 
 const home = () => {
@@ -21,24 +22,24 @@ const home = () => {
     text: "Every moment is a fresh beginning.",
     author: "T.S. Eliot",
   });
-
-  // Sample daily quotes
-  const quotes = [
-    { text: "Every moment is a fresh beginning.", author: "T.S. Eliot" },
-    {
-      text: "Your mental health is a priority. Your happiness is essential.",
-      author: "Anonymous",
-    },
-    { text: "Progress, not perfection.", author: "Anonymous" },
-    { text: "You are stronger than you think.", author: "Anonymous" },
-    { text: "Healing isn't linear, and that's okay.", author: "Anonymous" },
-  ];
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await account.get();
+        setUserName(user.name);
+      } catch (error) {
+        console.error("❌ Failed to fetch user:", error);
+      }
+    };
 
+    fetchUser();
+  }, []);
   const getGreeting = () => {
     const hour = currentTime.getHours();
     if (hour < 12) return "Good Morning";
@@ -115,7 +116,7 @@ const home = () => {
         <View className="px-4 flex-row justify-between items-center mb-6">
           <View>
             <Text className="text-white text-2xl font-bold">
-              {getGreeting()}, Doney
+              {getGreeting()}, {userName}
             </Text>
             <Text className="text-purple-200 text-base mt-1">
               {currentTime.toLocaleDateString("en-US", {
@@ -141,19 +142,6 @@ const home = () => {
           <Text className="text-purple-200 text-sm">— {dailyQuote.author}</Text>
         </View>
       </LinearGradient>
-
-      {/* Quick Mood Entry */}
-      {/* <View className="px-6 mt-6">
-        <Text className="text-xl font-bold text-white mb-4">
-          How are you feeling?
-        </Text>
-        <View className="flex-row justify-between">
-          <MoodShortcut emoji="😊" mood="Great" color="#10B981" />
-          <MoodShortcut emoji="😌" mood="Good" color="#3B82F6" />
-          <MoodShortcut emoji="😐" mood="Okay" color="#F59E0B" />
-          <MoodShortcut emoji="😔" mood="Down" color="#EF4444" />
-        </View>
-      </View> */}
 
       {/* Stats Overview */}
       <View className="px-6 mt-6 mb-6">
