@@ -63,7 +63,7 @@ const _layout = () => {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
           title: "Home",
           headerShown: false,
@@ -104,31 +104,6 @@ const _layout = () => {
           ),
         }}
       />
-      {/* <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          headerShown: false,
-          tabBarIcon: ({ color, focused }) => (
-            <View
-              style={{
-                backgroundColor: focused
-                  ? "rgba(168, 85, 247, 0.2)"
-                  : "transparent",
-                borderRadius: 12,
-                padding: 8,
-                marginTop: -4,
-              }}
-            >
-              <Ionicons
-                name={focused ? "person" : "person-outline"}
-                size={20}
-                color={color}
-              />
-            </View>
-          ),
-        }}
-      /> */}
     </Tabs>
   );
 };

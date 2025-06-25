@@ -6,13 +6,11 @@ import {
   TouchableOpacity,
   Dimensions,
 } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useNavigation } from "@react-navigation/native";
-import { StackActions } from "@react-navigation/native";
 import { account } from "@/lib/appwrite";
 const { width } = Dimensions.get("window");
 
@@ -23,7 +21,7 @@ const home = () => {
     author: "T.S. Eliot",
   });
   const [userName, setUserName] = useState("");
-
+  const router = useRouter();
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -81,26 +79,16 @@ const home = () => {
       </View>
     </TouchableOpacity>
   );
-
-  const MoodShortcut = ({ emoji, mood, color }: any) => (
-    <TouchableOpacity
-      className="bg-gray-800/50 backdrop-blur-xl rounded-xl p-3 items-center shadow-lg border border-gray-700/50 mx-1"
-      style={{
-        width: (width - 80) / 4,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-      }}
-    >
-      <Text className="text-2xl mb-2">{emoji}</Text>
-      <Text className="text-xs font-medium text-gray-200">{mood}</Text>
-    </TouchableOpacity>
-  );
-  const handleLogout = () => {
-    router.navigate("/");
-  };
+  const handleLogout = useCallback(async () => {
+    try {
+      await account.deleteSession("current");
+      console.log("User logged out");
+      router.replace("/");
+    } catch (error) {
+      console.error("❌ Logout error:", error);
+      alert("Failed to log out. Please try again.");
+    }
+  }, [router]);
   return (
     <ScrollView
       className="flex-1 bg-gray-900"

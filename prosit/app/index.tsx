@@ -40,8 +40,8 @@ export default function Index() {
       const session = await account.createEmailPasswordSession(email, password);
       console.log("✅ Logged in:", session);
 
-      // 🎯 Navigate to your main screen
-      router.replace("/(tabs)");
+      // 🎯 Navigate to your home screen
+      router.replace("/(tabs)/home");
     } catch (error: any) {
       console.error("❌ Login error:", error);
 
