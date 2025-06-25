@@ -14,7 +14,12 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-
+import { account } from "@/lib/appwrite";
+import { ID } from "react-native-appwrite";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
 const { height } = Dimensions.get("window");
 
 export default function Register() {
@@ -31,33 +36,122 @@ export default function Register() {
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
+  // const handleRegister = async () => {
+  //   const { fullName, email, password, confirmPassword } = formData;
+
+  //   if (!fullName || !email || !password || !confirmPassword) {
+  //     alert("Please fill in all fields");
+  //     return;
+  //   }
+  //   if (!isValidEmail(email)) {
+  //     alert("Please enter a valid email address");
+  //     return;
+  //   }
+
+  //   if (password !== confirmPassword) {
+  //     alert("Passwords do not match");
+  //     return;
+  //   }
+
+  //   if (password.length < 6) {
+  //     alert("Password must be at least 6 characters long");
+  //     return;
+  //   }
+
+  //   setIsLoading(true);
+  //   setTimeout(() => {
+  //     setIsLoading(false);
+  //     alert("Registration successful!");
+  //     // router.replace("/(tabs)");
+  //   }, 1500);
+  // };
   const handleRegister = async () => {
     const { fullName, email, password, confirmPassword } = formData;
 
+    // Validation checks (keep your existing ones)
     if (!fullName || !email || !password || !confirmPassword) {
       alert("Please fill in all fields");
       return;
     }
-
+    if (!isValidEmail(email)) {
+      alert("Please enter a valid email address");
+      return;
+    }
     if (password !== confirmPassword) {
       alert("Passwords do not match");
       return;
     }
-
     if (password.length < 6) {
       alert("Password must be at least 6 characters long");
       return;
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      alert("Registration successful!");
-      // router.replace("/(tabs)");
-    }, 1500);
-  };
 
+    //   try {
+    //     // Create account with Appwrite
+    //     const newAccount = await account.create(
+    //       ID.unique(),
+    //       email,
+    //       password,
+    //       fullName
+    //     );
+
+    //     console.log("Account created:", newAccount);
+
+    //     // Send verification email (use deep link for mobile)
+    //     await account.createVerification("http://localhost:8081/verify");
+
+    //     alert(
+    //       "Registration successful! Please check your email to verify your account."
+    //     );
+
+    //     // Route to verify screen instead of main app
+    //     router.push("/verify");
+    //   } catch (error: any) {
+    //     console.error("Registration error:", error);
+
+    //     if (error.code === 409) {
+    //       alert("An account with this email already exists");
+    //     } else if (error.code === 400) {
+    //       alert("Invalid email or password format");
+    //     } else {
+    //       alert(`Registration failed: ${error.message}`);
+    //     }
+    //   } finally {
+    //     setIsLoading(false);
+    //   }
+    // };
+    try {
+      // Create user account
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
+
+      // Send verification email immediately (no authentication issues)
+      await sendEmailVerification(user);
+
+      console.log("Account created:", user);
+      alert(
+        "Registration successful! Please check your email to verify your account before logging in."
+      );
+
+      // User stays logged out until they verify
+      await auth.signOut();
+      router.push("/");
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      alert(`Registration failed: ${error.message}`);
+    }
+  };
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -142,6 +236,9 @@ export default function Register() {
               setShowConfirmPassword(!showConfirmPassword)
             }
           />
+          <TouchableOpacity onPress={testEmailService}>
+            <Text>Test Email</Text>
+          </TouchableOpacity>
 
           {/* Register Button */}
           <TouchableOpacity
