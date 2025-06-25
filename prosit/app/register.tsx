@@ -18,6 +18,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Client, Account, ID } from "react-native-appwrite";
 import { router } from "expo-router";
 import { useRouter } from "expo-router";
+import { databases } from "@/lib/appwrite";
+import { COLLECTION_ID, DATABASE_ID } from "./config/prositDB";
 
 // Initialize Appwrite
 const client = new Client();
@@ -180,6 +182,13 @@ export default function Register() {
       );
       console.log("✅ Account created:", newAccount);
 
+      // Create default stats document
+      await databases.createDocument(DATABASE_ID, COLLECTION_ID, ID.unique(), {
+        userId: newAccount.$id,
+        dayStreak: 0,
+        entries: 0,
+        positivePercent: 0,
+      });
       // 🚫 End the session if auto-logged in
       try {
         await account.deleteSession("current");
