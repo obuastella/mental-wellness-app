@@ -151,6 +151,56 @@ export default function Register() {
     setShowConfirmPassword((prev) => !prev);
   }, []);
 
+  // const handleRegister = async (): Promise<void> => {
+  //   const { fullName, email, password, confirmPassword } = formData;
+
+  //   if (!email || !password || !fullName) {
+  //     alert("Error: Please fill in all fields");
+  //     return;
+  //   }
+
+  //   if (password !== confirmPassword) {
+  //     alert("Error: Passwords do not match");
+  //     return;
+  //   }
+
+  //   if (password.length < 8) {
+  //     alert("Error: Password must be at least 8 characters long");
+  //     return;
+  //   }
+
+  //   setIsLoading(true);
+
+  //   try {
+  //     const newAccount = await account.create(
+  //       ID.unique(),
+  //       email,
+  //       password,
+  //       fullName
+  //     );
+  //     console.log("✅ Account created:", newAccount);
+
+  //     alert(
+  //       "Registration Successful!, You can now log in with your email and password."
+  //     );
+  //     router.replace("/");
+  //   } catch (error: any) {
+  //     console.error("❌ Registration error:", error);
+
+  //     if (error.code === 409) {
+  //       alert("Error: An account with this email already exists");
+  //     } else if (error.code === 400) {
+  //       alert("Error: Invalid email or password format");
+  //     } else {
+  //       alert(
+  //         `Registration Failed",
+  //         ${error.message} || "An unexpected error occurred`
+  //       );
+  //     }
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
   const handleRegister = async (): Promise<void> => {
     const { fullName, email, password, confirmPassword } = formData;
 
@@ -180,10 +230,18 @@ export default function Register() {
       );
       console.log("✅ Account created:", newAccount);
 
+      // 🚫 End the session if auto-logged in
+      try {
+        await account.deleteSession("current");
+        console.log("🛑 Auto-session deleted after registration");
+      } catch (err) {
+        console.log("⚠️ No active session to delete or already deleted");
+      }
+
       alert(
-        "Registration Successful!, You can now log in with your email and password."
+        "Registration Successful! You can now log in with your credentials."
       );
-      router.replace("/");
+      router.replace("/"); // redirect to login
     } catch (error: any) {
       console.error("❌ Registration error:", error);
 
@@ -192,10 +250,7 @@ export default function Register() {
       } else if (error.code === 400) {
         alert("Error: Invalid email or password format");
       } else {
-        alert(
-          `Registration Failed",
-          ${error.message} || "An unexpected error occurred`
-        );
+        alert(`Registration Failed: ${error.message}`);
       }
     } finally {
       setIsLoading(false);
