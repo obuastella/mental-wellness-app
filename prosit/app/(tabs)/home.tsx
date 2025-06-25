@@ -11,17 +11,21 @@ import { Link, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { account } from "@/lib/appwrite";
+import { account, databases } from "@/lib/appwrite";
+import { COLLECTION_ID, DATABASE_ID } from "../config/prositDB";
+import { Query } from "react-native-appwrite";
 const { width } = Dimensions.get("window");
 
 const home = () => {
+  const router = useRouter();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [dailyQuote, setDailyQuote] = useState({
     text: "Every moment is a fresh beginning.",
     author: "T.S. Eliot",
   });
   const [userName, setUserName] = useState("");
-  const router = useRouter();
+
+  const [stats, setStats] = useState<any>(null);
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -35,8 +39,22 @@ const home = () => {
         console.error("❌ Failed to fetch user:", error);
       }
     };
-
     fetchUser();
+    const fetchStats = async () => {
+      const user = await account.get();
+
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTION_ID,
+        [Query.equal("userId", user.$id)]
+      );
+
+      if (response.documents.length > 0) {
+        setStats(response.documents[0]);
+      }
+    };
+
+    fetchStats();
   }, []);
   const getGreeting = () => {
     const hour = currentTime.getHours();
@@ -139,17 +157,23 @@ const home = () => {
         <View className="bg-gray-800/50 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-gray-700/50">
           <View className="flex-row justify-between items-center">
             <View className="items-center flex-1">
-              <Text className="text-2xl font-bold text-purple-400">0</Text>
+              <Text className="text-2xl font-bold text-purple-400">
+                {stats?.dayStreak}
+              </Text>
               <Text className="text-sm text-gray-300 mt-1">Day Streak</Text>
             </View>
             <View className="w-px h-12 bg-gray-600" />
             <View className="items-center flex-1">
-              <Text className="text-2xl font-bold text-blue-400">2</Text>
+              <Text className="text-2xl font-bold text-blue-400">
+                {stats?.entries}
+              </Text>
               <Text className="text-sm text-gray-300 mt-1">Entries</Text>
             </View>
             <View className="w-px h-12 bg-gray-600" />
             <View className="items-center flex-1">
-              <Text className="text-2xl font-bold text-green-400">5%</Text>
+              <Text className="text-2xl font-bold text-green-400">
+                {stats?.positivePercent}%
+              </Text>
               <Text className="text-sm text-gray-300 mt-1">Positive</Text>
             </View>
           </View>
