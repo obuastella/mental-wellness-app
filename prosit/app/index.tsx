@@ -26,6 +26,7 @@ export default function Index() {
   const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
+
   const handleLogin = async () => {
     if (!email || !password) {
       alert("Error:  Please enter both email and password");
@@ -46,7 +47,9 @@ export default function Index() {
 
       if (error.code === 401) {
         // Unauthorized: likely wrong password
-        alert("Invalid credentials.");
+        alert(
+          "Invalid email or password. If you don't have an account, please register."
+        );
       } else {
         alert(`Login Error", ${error.message} || "Something went wrong`);
       }
