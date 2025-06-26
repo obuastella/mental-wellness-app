@@ -9,68 +9,132 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { account, databases } from "@/lib/appwrite";
+import { DATABASE_ID, JOURNAL_COLLECTION_ID } from "../config/prositDB";
+import { ID, Query } from "appwrite";
 
 const Journal = () => {
   const [entries, setEntries] = useState<any>([]);
   const [currentEntry, setCurrentEntry] = useState("");
-  const [editingId, setEditingId] = useState(null);
+  const [editingId, setEditingId] = useState<any>(null);
   const [editingText, setEditingText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
+  // fetch entries
+  useEffect(() => {
+    const fetchEntries = async () => {
+      const user = await account.get();
+
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        JOURNAL_COLLECTION_ID,
+        [Query.equal("userId", user.$id)]
+      );
+      if (response.documents.length > 0) {
+        setEntries(response.documents);
+      }
+    };
+
+    fetchEntries();
+  }, []);
   // Add new entry
-  const addEntry = () => {
+  const addEntry = async () => {
+    setIsLoading(true);
     if (currentEntry.trim()) {
-      const newEntry: any = {
-        id: Date.now().toString(),
-        text: currentEntry.trim(),
-        date: new Date().toLocaleDateString(),
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setEntries([newEntry, ...entries]);
-      setCurrentEntry("");
+      const text = currentEntry.trim();
+      const date = new Date().toLocaleDateString();
+      const time = new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      try {
+        const user = await account.get();
+
+        // Store in Appwrite
+        const response = await databases.createDocument(
+          DATABASE_ID,
+          JOURNAL_COLLECTION_ID,
+          ID.unique(),
+          {
+            userId: user.$id,
+            text,
+            date,
+            time,
+          }
+        );
+
+        console.log("📘 Journal saved:", response);
+        setIsLoading(false);
+
+        // Add to local state (optional)
+        const newEntry = {
+          id: response.$id,
+          text,
+          date,
+          time,
+        };
+        setEntries([newEntry, ...entries]);
+        setCurrentEntry("");
+      } catch (error: any) {
+        setIsLoading(false);
+
+        console.error("❌ Failed to save journal:", error);
+        alert("Error saving journal entry.");
+      }
     }
   };
 
-  // Delete entry
-  const deleteEntry = (id: any) => {
-    Alert.alert(
-      "Delete Entry",
-      "Are you sure you want to delete this journal entry?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () =>
-            setEntries(entries.filter((entry: any) => entry.id !== id)),
-        },
-      ]
-    );
+  const deleteEntry = async (id: string) => {
+    try {
+      await databases.deleteDocument(DATABASE_ID, JOURNAL_COLLECTION_ID, id);
+      // Update local state after successful deletion
+      setEntries((prev: any) => prev.filter((entry: any) => entry.$id !== id));
+      alert("Journal entry deleted!");
+    } catch (error: any) {
+      console.error("❌ Error deleting entry:", error);
+      Alert.alert(
+        "Error",
+        "Failed to delete the journal entry. Please try again."
+      );
+    }
   };
-
   // Start editing
   const startEdit = (id: any, text: any) => {
     setEditingId(id);
     setEditingText(text);
+    console.log("selected edit id: ", id);
   };
 
-  // Save edit
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (editingText.trim()) {
-      setEntries(
-        entries.map((entry: any) =>
-          entry.id === editingId
-            ? { ...entry, text: editingText.trim() }
-            : entry
-        )
-      );
+      try {
+        // 1. Update in Appwrite
+        const updated = await databases.updateDocument(
+          DATABASE_ID,
+          JOURNAL_COLLECTION_ID,
+          editingId, // this should be the Appwrite document $id
+          { text: editingText.trim() }
+        );
+
+        // 2. Update local state
+        setEntries((prev: any) =>
+          prev.map((entry: any) =>
+            entry.$id === editingId ? { ...entry, text: updated.text } : entry
+          )
+        );
+
+        console.log("✅ Entry updated:", updated);
+      } catch (error: any) {
+        console.error("❌ Error updating entry:", error);
+        alert("Failed to update journal entry. Please try again.");
+      } finally {
+        setEditingId(null);
+        setEditingText("");
+      }
     }
-    setEditingId(null);
-    setEditingText("");
   };
 
   // Cancel edit
@@ -126,7 +190,8 @@ const Journal = () => {
             },
           ]}
           onPress={addEntry}
-          disabled={!currentEntry.trim()}
+          // disabled={!currentEntry.trim()}
+          disabled={isLoading}
           activeOpacity={0.8}
         >
           <Ionicons
@@ -163,7 +228,7 @@ const Journal = () => {
           </View>
         ) : (
           entries.map((entry: any, index: number) => (
-            <View key={entry.id} style={styles.entryCard}>
+            <View key={index} style={styles.entryCard}>
               {/* Entry Header */}
               <View style={styles.entryHeader}>
                 <View style={styles.entryDateContainer}>
@@ -175,14 +240,14 @@ const Journal = () => {
                 <View style={styles.entryActions}>
                   <TouchableOpacity
                     style={styles.editButton}
-                    onPress={() => startEdit(entry.id, entry.text)}
+                    onPress={() => startEdit(entry.$id, entry.text)}
                     activeOpacity={0.7}
                   >
                     <Ionicons name="create-outline" size={16} color="#A855F7" />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.deleteButton}
-                    onPress={() => deleteEntry(entry.id)}
+                    onPress={() => deleteEntry(entry.$id)}
                     activeOpacity={0.7}
                   >
                     <Ionicons name="trash-outline" size={16} color="#EF4444" />
@@ -191,7 +256,7 @@ const Journal = () => {
               </View>
 
               {/* Entry Content */}
-              {editingId === entry.id ? (
+              {editingId === entry.$id ? (
                 <View style={styles.editContainer}>
                   <TextInput
                     style={styles.editInput}
