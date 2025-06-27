@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 import { account, databases } from "@/lib/appwrite";
 import { COLLECTION_ID, DATABASE_ID } from "../config/prositDB";
 import { Query } from "react-native-appwrite";
+import { useFocusEffect } from "@react-navigation/native";
 const { width } = Dimensions.get("window");
 
 const home = () => {
@@ -30,32 +31,30 @@ const home = () => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const user = await account.get();
-        setUserName(user.name);
-      } catch (error) {
-        console.error("❌ Failed to fetch user:", error);
-      }
-    };
-    fetchUser();
-    const fetchStats = async () => {
-      const user = await account.get();
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUserAndStats = async () => {
+        try {
+          const user = await account.get();
+          setUserName(user.name);
 
-      const response = await databases.listDocuments(
-        DATABASE_ID,
-        COLLECTION_ID,
-        [Query.equal("userId", user.$id)]
-      );
+          const response = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTION_ID,
+            [Query.equal("userId", user.$id)]
+          );
 
-      if (response.documents.length > 0) {
-        setStats(response.documents[0]);
-      }
-    };
+          if (response.documents.length > 0) {
+            setStats(response.documents[0]);
+          }
+        } catch (error) {
+          console.error("❌ Failed to fetch user/stats:", error);
+        }
+      };
 
-    fetchStats();
-  }, []);
+      fetchUserAndStats();
+    }, [])
+  );
   const getGreeting = () => {
     const hour = currentTime.getHours();
     if (hour < 12) return "Good Morning";

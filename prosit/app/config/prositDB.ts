@@ -1,2 +1,3 @@
 export const DATABASE_ID = "685c5630003d09f8c4f0";
 export const COLLECTION_ID = "685c564300223920203e";
+export const JOURNAL_COLLECTION_ID = "685d35a90006d8ffb28e";
