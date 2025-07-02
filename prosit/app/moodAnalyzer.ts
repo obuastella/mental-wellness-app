@@ -1,5 +1,3 @@
-import * as tf from "@tensorflow/tfjs";
-
 export interface MoodResult {
   mood: string;
   confidence: number;
@@ -19,14 +17,10 @@ export interface MoodData {
   emoji?: string;
 }
 
-class MoodAnalyzer {
+export class MoodAnalyzer {
   private isInitialized = false;
-  private model: tf.LayersModel | null = null;
-  private tokenizer: { [key: string]: number } = {};
-  private maxSequenceLength = 32; // Reduced from 64
-  private vocabularySize = 0;
 
-  // Mood categories remain the same
+  // Mood categories
   private moodCategories = {
     happy: { color: "#10B981", emoji: "😊", index: 0 },
     sad: { color: "#6366F1", emoji: "😢", index: 1 },
@@ -40,9 +34,7 @@ class MoodAnalyzer {
     tired: { color: "#8B5CF6", emoji: "😴", index: 9 },
   };
 
-  private moodLabels = Object.keys(this.moodCategories);
-
-  // Optimized keyword patterns with weights for better accuracy
+  // Enhanced keyword patterns with weights for better accuracy
   private keywordPatterns = {
     angry: {
       keywords: [
@@ -57,6 +49,12 @@ class MoodAnalyzer {
         "angry",
         "livid",
         "outraged",
+        "infuriating",
+        "bullshit",
+        "asshole",
+        "screw this",
+        "what the hell",
+        "fed up",
       ],
       weight: 0.95,
     },
@@ -70,6 +68,10 @@ class MoodAnalyzer {
         "fed up",
         "done with",
         "nuts",
+        "whatever",
+        "ugh",
+        "seriously",
+        "can't even",
       ],
       weight: 0.85,
     },
@@ -83,6 +85,9 @@ class MoodAnalyzer {
         "weary",
         "fatigued",
         "sleepy",
+        "need sleep",
+        "can't stay awake",
+        "beat",
       ],
       weight: 0.9,
     },
@@ -97,6 +102,9 @@ class MoodAnalyzer {
         "down",
         "blue",
         "hopeless",
+        "miserable",
+        "hurt",
+        "pain",
       ],
       weight: 0.88,
     },
@@ -111,6 +119,9 @@ class MoodAnalyzer {
         "perfect",
         "smile",
         "good",
+        "awesome",
+        "love",
+        "excited",
       ],
       weight: 0.85,
     },
@@ -124,6 +135,9 @@ class MoodAnalyzer {
         "can't wait",
         "incredible",
         "fired up",
+        "stoked",
+        "amped",
+        "psyched",
       ],
       weight: 0.87,
     },
@@ -137,6 +151,8 @@ class MoodAnalyzer {
         "stressed",
         "overthinking",
         "on edge",
+        "freaking out",
+        "overwhelmed",
       ],
       weight: 0.86,
     },
@@ -150,6 +166,8 @@ class MoodAnalyzer {
         "zen",
         "balanced",
         "centered",
+        "chill",
+        "at ease",
       ],
       weight: 0.83,
     },
@@ -162,6 +180,8 @@ class MoodAnalyzer {
         "fortunate",
         "thank you",
         "gratitude",
+        "lucky",
+        "thankful for",
       ],
       weight: 0.84,
     },
@@ -175,192 +195,38 @@ class MoodAnalyzer {
         "average",
         "same",
         "usual",
+        "whatever",
+        "meh",
+        "alright",
       ],
       weight: 0.75,
     },
   };
 
-  // Minimal high-quality training data for faster training
-  private coreTrainingData = [
-    // High confidence examples only
-    { text: "I'm having a great day today", mood: "happy" },
-    { text: "This makes me so sad", mood: "sad" },
-    { text: "I'm so frustrated right now", mood: "angry" },
-    { text: "I'm really worried about tomorrow", mood: "anxious" },
-    { text: "I can't wait for this", mood: "excited" },
-    { text: "I feel so peaceful right now", mood: "calm" },
-    { text: "It's just another day", mood: "neutral" },
-    { text: "I'm so thankful for this", mood: "grateful" },
-    { text: "This is so annoying", mood: "frustrated" },
-    { text: "I'm exhausted", mood: "tired" },
+  initialize(): Promise<void> {
+    return new Promise((resolve) => {
+      if (this.isInitialized) {
+        resolve();
+        return;
+      }
 
-    // Add a few more for each category
-    { text: "Life is amazing", mood: "happy" },
-    { text: "I feel empty inside", mood: "sad" },
-    { text: "This makes my blood boil", mood: "angry" },
-    { text: "My heart is racing", mood: "anxious" },
-    { text: "I'm bouncing off the walls", mood: "excited" },
-    { text: "Everything is serene", mood: "calm" },
-    { text: "Nothing special happening", mood: "neutral" },
-    { text: "I feel blessed", mood: "grateful" },
-    { text: "I'm at my wit's end", mood: "frustrated" },
-    { text: "I need some rest", mood: "tired" },
-  ];
-
-  async initialize(): Promise<void> {
-    if (this.isInitialized) return;
-
-    try {
-      console.log("🚀 Initializing Fast Mood Analyzer...");
-      const startTime = performance.now();
-
-      await tf.ready();
-
-      // Try to use primarily rule-based analysis with lightweight ML backup
-      this.buildOptimizedTokenizer();
-      await this.createLightweightModel();
-
-      this.isInitialized = true;
-      const loadTime = Math.round(performance.now() - startTime);
-      console.log(`⚡ Fast Mood Analyzer ready in ${loadTime}ms!`);
-    } catch (error) {
-      console.error("❌ Failed to initialize mood analyzer:", error);
-      // Fallback to rule-based only
-      this.isInitialized = true;
-    }
+      try {
+        console.log("🚀 Initializing Mood Analyzer...");
+        this.isInitialized = true;
+        console.log("⚡ Mood Analyzer ready!");
+        resolve();
+      } catch (error) {
+        console.error("❌ Failed to initialize mood analyzer:", error);
+        this.isInitialized = true;
+        resolve();
+      }
+    });
   }
 
-  private buildOptimizedTokenizer(): void {
-    // Pre-defined compact vocabulary for faster tokenization
-    const coreVocabulary = new Set<string>();
-
-    // Add all keywords
-    Object.values(this.keywordPatterns).forEach(({ keywords }) => {
-      keywords.forEach((keyword) => {
-        keyword
-          .split(" ")
-          .forEach((word) => coreVocabulary.add(word.toLowerCase()));
-      });
-    });
-
-    // Add training data words
-    this.coreTrainingData.forEach((item) => {
-      const words = item.text
-        .toLowerCase()
-        .replace(/[^\w\s']/g, " ")
-        .split(/\s+/)
-        .filter((word) => word.length > 1); // Only words longer than 1 char
-
-      words.forEach((word) => coreVocabulary.add(word));
-    });
-
-    // Create compact tokenizer
-    this.tokenizer = { "<PAD>": 0, "<UNK>": 1 };
-    let index = 2;
-
-    Array.from(coreVocabulary)
-      .sort()
-      .forEach((word) => {
-        this.tokenizer[word] = index++;
-      });
-
-    this.vocabularySize = Object.keys(this.tokenizer).length;
-    console.log(`📚 Vocabulary size: ${this.vocabularySize}`);
-  }
-
-  private tokenizeText(text: string): number[] {
-    const words = text
-      .toLowerCase()
-      .replace(/[^\w\s']/g, " ")
-      .split(/\s+/)
-      .filter((word) => word.length > 0);
-
-    let tokens = words.map(
-      (word) => this.tokenizer[word] || this.tokenizer["<UNK>"]
-    );
-
-    // Pad or truncate to maxSequenceLength
-    if (tokens.length < this.maxSequenceLength) {
-      tokens = tokens.concat(
-        Array(this.maxSequenceLength - tokens.length).fill(
-          this.tokenizer["<PAD>"]
-        )
-      );
-    } else {
-      tokens = tokens.slice(0, this.maxSequenceLength);
-    }
-
-    return tokens;
-  }
-
-  private async createLightweightModel(): Promise<void> {
-    const numClasses = this.moodLabels.length;
-    const embeddingDim = 32; // Reduced from 64
-
-    // Much simpler, faster model architecture
-    this.model = tf.sequential({
-      layers: [
-        tf.layers.embedding({
-          inputDim: this.vocabularySize,
-          outputDim: embeddingDim,
-          inputLength: this.maxSequenceLength,
-          maskZero: true,
-        }),
-        tf.layers.globalAveragePooling1d(), // Much faster than LSTM
-        tf.layers.dropout({ rate: 0.3 }),
-        tf.layers.dense({
-          units: 64,
-          activation: "relu",
-        }),
-        tf.layers.dropout({ rate: 0.4 }),
-        tf.layers.dense({
-          units: numClasses,
-          activation: "softmax",
-        }),
-      ],
-    });
-
-    // Compile with faster optimizer
-    this.model.compile({
-      optimizer: tf.train.adam(0.001),
-      loss: "categoricalCrossentropy",
-      metrics: ["accuracy"],
-    });
-
-    // Prepare minimal training data
-    const trainTexts = this.coreTrainingData.map((item) =>
-      this.tokenizeText(item.text)
-    );
-    const trainLabels = this.coreTrainingData.map((item) => {
-      const label = Array(numClasses).fill(0);
-      const moodIndex =
-        this.moodCategories[item.mood as keyof typeof this.moodCategories]
-          .index;
-      label[moodIndex] = 1;
-      return label;
-    });
-
-    const xs = tf.tensor2d(trainTexts);
-    const ys = tf.tensor2d(trainLabels);
-
-    // Fast training with fewer epochs
-    await this.model.fit(xs, ys, {
-      epochs: 30, // Reduced from 150
-      batchSize: 8,
-      shuffle: true,
-      verbose: 0,
-    });
-
-    xs.dispose();
-    ys.dispose();
-  }
-
-  // Enhanced rule-based analysis - this does most of the heavy lifting
-  private analyzeWithRules(
-    text: string
-  ): { mood: string; confidence: number } | null {
+  // Enhanced rule-based analysis
+  private analyzeWithRules(text: string): { mood: string; confidence: number } {
     const lowerText = text.toLowerCase();
-    let bestMatch = { mood: "", confidence: 0, matchStrength: 0 };
+    let bestMatch = { mood: "neutral", confidence: 70, matchStrength: 0 };
 
     // Check each mood category
     for (const [mood, { keywords, weight }] of Object.entries(
@@ -371,12 +237,14 @@ class MoodAnalyzer {
           // Calculate match strength based on keyword specificity and context
           const keywordLength = keyword.length;
           const contextBonus = this.getContextBonus(lowerText, keyword);
-          const matchStrength = (keywordLength + contextBonus) * weight;
+          const exactMatch = lowerText === keyword ? 5 : 0;
+          const matchStrength =
+            (keywordLength + contextBonus + exactMatch) * weight;
 
           if (matchStrength > bestMatch.matchStrength) {
             bestMatch = {
               mood,
-              confidence: Math.min(95, Math.round(75 + matchStrength * 5)),
+              confidence: Math.min(95, Math.round(75 + matchStrength * 3)),
               matchStrength,
             };
           }
@@ -384,166 +252,177 @@ class MoodAnalyzer {
       }
     }
 
-    return bestMatch.mood ? bestMatch : null;
+    // Additional context analysis
+    const sentimentBonus = this.getSentimentBonus(lowerText, bestMatch.mood);
+    bestMatch.confidence = Math.min(95, bestMatch.confidence + sentimentBonus);
+
+    return bestMatch;
   }
 
   private getContextBonus(text: string, keyword: string): number {
     // Give bonus for strong contextual indicators
     const strongIndicators = [
-      "so " + keyword,
-      "really " + keyword,
-      "very " + keyword,
-      "extremely " + keyword,
-      keyword + " as hell",
-      "fucking " + keyword,
+      `so ${keyword}`,
+      `really ${keyword}`,
+      `very ${keyword}`,
+      `extremely ${keyword}`,
+      `${keyword} as hell`,
+      `fucking ${keyword}`,
+      `super ${keyword}`,
+      `totally ${keyword}`,
     ];
 
     for (const indicator of strongIndicators) {
       if (text.includes(indicator)) {
-        return 3;
+        return 5;
+      }
+    }
+
+    // Medium strength indicators
+    const mediumIndicators = [
+      `pretty ${keyword}`,
+      `quite ${keyword}`,
+      `${keyword} right now`,
+      `feeling ${keyword}`,
+    ];
+
+    for (const indicator of mediumIndicators) {
+      if (text.includes(indicator)) {
+        return 2;
       }
     }
 
     return 0;
   }
 
-  async analyzeMood(text: string): Promise<MoodResult> {
-    if (!this.isInitialized) {
-      await this.initialize();
+  private getSentimentBonus(text: string, mood: string): number {
+    // Punctuation analysis
+    const exclamationCount = (text.match(/!/g) || []).length;
+    const questionCount = (text.match(/\?/g) || []).length;
+    const capsCount = (text.match(/[A-Z]/g) || []).length;
+
+    let bonus = 0;
+
+    // Exclamation marks boost confidence for emotional states
+    if (
+      exclamationCount > 0 &&
+      ["angry", "excited", "happy", "frustrated"].includes(mood)
+    ) {
+      bonus += Math.min(10, exclamationCount * 3);
     }
 
-    try {
-      // Primary: Rule-based analysis (fast and accurate)
-      const ruleResult = this.analyzeWithRules(text);
-      if (ruleResult && ruleResult.confidence > 75) {
-        const category =
-          this.moodCategories[
-            ruleResult.mood as keyof typeof this.moodCategories
-          ];
-        return {
-          mood:
-            ruleResult.mood.charAt(0).toUpperCase() + ruleResult.mood.slice(1),
-          confidence: ruleResult.confidence,
-          color: category.color,
-          emoji: category.emoji,
-          reasoning: `Keyword analysis (${ruleResult.confidence}% confidence)`,
-        };
-      }
-
-      // Fallback: Neural network (if model loaded successfully)
-      if (this.model) {
-        const tokens = this.tokenizeText(text);
-        const inputTensor = tf.tensor2d([tokens], [1, this.maxSequenceLength]);
-
-        const prediction = this.model.predict(inputTensor) as tf.Tensor;
-        const probabilities = await prediction.data();
-
-        const predictions = Array.from(probabilities).map((prob, index) => ({
-          mood: this.moodLabels[index],
-          probability: prob,
-        }));
-
-        predictions.sort((a, b) => b.probability - a.probability);
-        const topPrediction = predictions[0];
-        const confidence = Math.round(topPrediction.probability * 100);
-
-        inputTensor.dispose();
-        prediction.dispose();
-
-        const category =
-          this.moodCategories[
-            topPrediction.mood as keyof typeof this.moodCategories
-          ];
-
-        return {
-          mood:
-            topPrediction.mood.charAt(0).toUpperCase() +
-            topPrediction.mood.slice(1),
-          confidence: Math.max(65, confidence),
-          color: category.color,
-          emoji: category.emoji,
-          reasoning: `Neural network analysis (${confidence}% confidence)`,
-        };
-      }
-
-      // Final fallback: Use rule result even if low confidence, or default to neutral
-      if (ruleResult) {
-        const category =
-          this.moodCategories[
-            ruleResult.mood as keyof typeof this.moodCategories
-          ];
-        return {
-          mood:
-            ruleResult.mood.charAt(0).toUpperCase() + ruleResult.mood.slice(1),
-          confidence: ruleResult.confidence,
-          color: category.color,
-          emoji: category.emoji,
-          reasoning: `Keyword analysis (${ruleResult.confidence}% confidence)`,
-        };
-      }
-
-      // Default neutral
-      return {
-        mood: "Neutral",
-        confidence: 70,
-        color: this.moodCategories.neutral.color,
-        emoji: this.moodCategories.neutral.emoji,
-        reasoning: "No clear mood indicators found",
-      };
-    } catch (error) {
-      console.error("❌ Error in mood analysis:", error);
-      return {
-        mood: "Neutral",
-        confidence: 60,
-        color: this.moodCategories.neutral.color,
-        emoji: this.moodCategories.neutral.emoji,
-        reasoning: "Analysis error, defaulting to neutral",
-      };
+    // Question marks suggest uncertainty/anxiety
+    if (questionCount > 0 && ["anxious", "frustrated", "sad"].includes(mood)) {
+      bonus += Math.min(5, questionCount * 2);
     }
+
+    // Excessive caps suggest strong emotion
+    if (
+      capsCount > text.length * 0.3 &&
+      ["angry", "excited", "frustrated"].includes(mood)
+    ) {
+      bonus += 8;
+    }
+
+    // Text length consideration
+    if (text.length > 100 && ["sad", "anxious", "frustrated"].includes(mood)) {
+      bonus += 3; // Longer texts often indicate deeper emotions
+    }
+
+    return bonus;
+  }
+
+  analyzeMood(text: string): Promise<MoodResult> {
+    return new Promise(async (resolve) => {
+      try {
+        if (!this.isInitialized) {
+          await this.initialize();
+        }
+
+        if (!text || text.trim().length === 0) {
+          resolve({
+            mood: "Neutral",
+            confidence: 60,
+            color: this.moodCategories.neutral.color,
+            emoji: this.moodCategories.neutral.emoji,
+            reasoning: "No text provided",
+          });
+          return;
+        }
+
+        // Rule-based analysis
+        const result = this.analyzeWithRules(text);
+        const category =
+          this.moodCategories[result.mood as keyof typeof this.moodCategories];
+
+        resolve({
+          mood: result.mood.charAt(0).toUpperCase() + result.mood.slice(1),
+          confidence: result.confidence,
+          color: category.color,
+          emoji: category.emoji,
+          reasoning: `Keyword analysis (${result.confidence}% confidence)`,
+        });
+      } catch (error) {
+        console.error("❌ Error in mood analysis:", error);
+        resolve({
+          mood: "Neutral",
+          confidence: 60,
+          color: this.moodCategories.neutral.color,
+          emoji: this.moodCategories.neutral.emoji,
+          reasoning: "Analysis error, defaulting to neutral",
+        });
+      }
+    });
   }
 
   // Fast batch processing
-  async batchAnalyze(
+  batchAnalyze(
     entries: MoodData[],
     onProgress?: (progress: number) => void
   ): Promise<MoodData[]> {
-    const analyzedEntries: MoodData[] = [];
+    return new Promise(async (resolve) => {
+      try {
+        const analyzedEntries: MoodData[] = [];
 
-    // Process in larger batches since rule-based analysis is fast
-    const batchSize = 20;
-    for (let i = 0; i < entries.length; i += batchSize) {
-      const batch = entries.slice(i, i + batchSize);
+        // Process in batches
+        const batchSize = 10;
+        for (let i = 0; i < entries.length; i += batchSize) {
+          const batch = entries.slice(i, i + batchSize);
 
-      // Process batch concurrently for rule-based analysis
-      const batchPromises = batch.map(async (entry) => {
-        if (entry.mood && entry.confidence) {
-          return entry;
+          for (const entry of batch) {
+            if (entry.mood && entry.confidence) {
+              analyzedEntries.push(entry);
+              continue;
+            }
+
+            const moodResult = await this.analyzeMood(entry.text);
+            analyzedEntries.push({
+              ...entry,
+              mood: moodResult.mood,
+              confidence: moodResult.confidence,
+              color: moodResult.color,
+              emoji: moodResult.emoji,
+            });
+          }
+
+          if (onProgress) {
+            onProgress(
+              Math.round((analyzedEntries.length / entries.length) * 100)
+            );
+          }
+
+          // Small delay to keep UI responsive
+          if (i + batchSize < entries.length) {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          }
         }
 
-        const moodResult = await this.analyzeMood(entry.text);
-        return {
-          ...entry,
-          mood: moodResult.mood,
-          confidence: moodResult.confidence,
-          color: moodResult.color,
-          emoji: moodResult.emoji,
-        };
-      });
-
-      const batchResults = await Promise.all(batchPromises);
-      analyzedEntries.push(...batchResults);
-
-      if (onProgress) {
-        onProgress(Math.round((analyzedEntries.length / entries.length) * 100));
+        resolve(analyzedEntries);
+      } catch (error) {
+        console.error("❌ Error in batch analysis:", error);
+        resolve([]);
       }
-
-      // Minimal delay to keep UI responsive
-      if (i + batchSize < entries.length) {
-        await new Promise((resolve) => setTimeout(resolve, 1));
-      }
-    }
-
-    return analyzedEntries;
+    });
   }
 
   getMoodStats(entries: MoodData[]) {
@@ -610,24 +489,41 @@ class MoodAnalyzer {
     return "stable";
   }
 
-  // Quick test without the full test suite
-  async quickTest(): Promise<void> {
-    const testCases = [
-      { text: "fuck everyone at this point", expected: "angry" },
-      { text: "I'm having a great day", expected: "happy" },
-      { text: "I'm exhausted", expected: "tired" },
-    ];
+  quickTest(): Promise<void> {
+    return new Promise(async (resolve) => {
+      const testCases = [
+        { text: "fuck everyone at this point", expected: "angry" },
+        { text: "I'm having a great day", expected: "happy" },
+        { text: "I'm exhausted", expected: "tired" },
+        { text: "This is so annoying", expected: "frustrated" },
+        { text: "I'm really worried", expected: "anxious" },
+      ];
 
-    console.log("🧪 Quick test...");
-    for (const testCase of testCases) {
-      const result = await this.analyzeMood(testCase.text);
-      console.log(
-        `"${testCase.text}" → ${result.mood} (${result.confidence}%)`
-      );
-    }
+      console.log("🧪 Quick test...");
+      for (const testCase of testCases) {
+        const result = await this.analyzeMood(testCase.text);
+        console.log(
+          `"${testCase.text}" → ${result.mood} (${result.confidence}%)`
+        );
+      }
+      resolve();
+    });
   }
 }
 
-// Export singleton instance
-export const moodAnalyzer = new MoodAnalyzer();
-export default MoodAnalyzer;
+// Create singleton instance
+const moodAnalyzer = new MoodAnalyzer();
+
+// Multiple export formats to ensure compatibility
+export default moodAnalyzer;
+export { moodAnalyzer };
+export const fastMoodAnalyzer = moodAnalyzer;
+
+// For CommonJS compatibility
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = moodAnalyzer;
+  module.exports.default = moodAnalyzer;
+  module.exports.MoodAnalyzer = MoodAnalyzer;
+  module.exports.moodAnalyzer = moodAnalyzer;
+  module.exports.fastMoodAnalyzer = moodAnalyzer;
+}
