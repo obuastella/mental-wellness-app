@@ -334,9 +334,9 @@ const Journal = () => {
                     {isDeleting ? (
                       <Ionicons
                         name="refresh-outline"
-                        className="animate-spin"
+                        className=""
                         size={16}
-                        color="#EF4444"
+                        color="#393E46"
                       />
                     ) : (
                       <Ionicons
