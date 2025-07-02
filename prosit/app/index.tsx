@@ -9,7 +9,7 @@ import {
   Platform,
   Dimensions,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,13 +20,29 @@ import { account } from "@/lib/appwrite";
 const { width, height } = Dimensions.get("window");
 
 export default function Index() {
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const router = useRouter();
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        await account.get();
+        // If this succeeds, session exists
+        console.log("✅ Session active. Redirecting to home.");
+        router.replace("/(tabs)/home");
+      } catch (error) {
+        console.log("No active session, stay on login.");
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
 
+    checkSession();
+  }, []);
   const handleLogin = async () => {
     if (!email || !password) {
       alert("Error:  Please enter both email and password");
