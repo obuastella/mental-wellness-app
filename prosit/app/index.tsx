@@ -200,13 +200,6 @@ export default function Index() {
                   Sign Up
                 </Text>
               </TouchableOpacity>
-            </Link>{" "}
-            <Link href="/(tabs)/home" asChild>
-              <TouchableOpacity>
-                <Text className="text-primary font-semibold text-base">
-                  Home
-                </Text>
-              </TouchableOpacity>
             </Link>
           </View>
         </View>

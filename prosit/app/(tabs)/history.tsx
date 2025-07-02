@@ -283,11 +283,10 @@ import { moodAnalyzer, MoodData } from "../moodAnalyzer";
 import { account, databases } from "@/lib/appwrite";
 import { Query } from "appwrite";
 import { DATABASE_ID, JOURNAL_COLLECTION_ID } from "../config/prositDB";
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from "@react-navigation/native";
 
 const { width } = Dimensions.get("window");
 const History = () => {
-  
   const [selectedPeriod, setSelectedPeriod] = useState("week");
   const [moodData, setMoodData] = useState<MoodData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -299,7 +298,7 @@ const History = () => {
     dominantEmoji: "😐",
     average: 0,
     totalEntries: 0,
-    moodDistribution: {}
+    moodDistribution: {},
   });
 
   const periods = [
@@ -312,7 +311,7 @@ const History = () => {
     try {
       setIsLoading(true);
       const user = await account.get();
-      
+
       // Calculate date range based on selected period
       const now = new Date();
       const startDate = new Date();
@@ -328,61 +327,62 @@ const History = () => {
         [
           Query.equal("userId", user.$id),
           Query.orderDesc("$createdAt"),
-          Query.limit(50)
+          Query.limit(50),
         ]
       );
 
       // Filter entries by date range
-      const filteredEntries = response.documents.filter(doc => {
+      const filteredEntries = response.documents.filter((doc) => {
         const entryDate = new Date(doc.$createdAt);
         return entryDate >= startDate;
       });
 
       // Convert to MoodData format
-      const entries: MoodData[] = filteredEntries.map(doc => ({
+      const entries: MoodData[] = filteredEntries.map((doc) => ({
         id: doc.$id,
         text: doc.text,
         date: new Date(doc.$createdAt).toLocaleDateString(),
-        time: doc.time || new Date(doc.$createdAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        time:
+          doc.time ||
+          new Date(doc.$createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
         mood: doc.mood,
         confidence: doc.confidence,
         color: doc.color,
-        emoji: doc.emoji
+        emoji: doc.emoji,
       }));
 
       setMoodData(entries);
-      
+
       // Analyze moods if not already analyzed
       await analyzeMoods(entries);
-      
     } catch (error) {
       console.error("❌ Error fetching journal entries:", error);
     } finally {
       setIsLoading(false);
     }
   };
-useFocusEffect(
-  useCallback(() => {
-    fetchJournalEntries();
-  }, [selectedPeriod])
-);
+  useFocusEffect(
+    useCallback(() => {
+      fetchJournalEntries();
+    }, [selectedPeriod])
+  );
   // Analyze moods using AI
   const analyzeMoods = async (entries: MoodData[]) => {
     try {
       setIsAnalyzing(true);
-      
+
       // Initialize the mood analyzer
       await moodAnalyzer.initialize();
-      
+
       // Batch analyze entries
       const analyzedEntries = await moodAnalyzer.batchAnalyze(entries);
-      
+
       // Update entries in database and state
       for (const entry of analyzedEntries) {
-        if (entry.mood && !entries.find(e => e.id === entry.id)?.mood) {
+        if (entry.mood && !entries.find((e) => e.id === entry.id)?.mood) {
           // Update database with mood analysis
           try {
             await databases.updateDocument(
@@ -393,7 +393,7 @@ useFocusEffect(
                 mood: entry.mood,
                 confidence: entry.confidence,
                 color: entry.color,
-                emoji: entry.emoji
+                emoji: entry.emoji,
               }
             );
           } catch (updateError) {
@@ -401,13 +401,12 @@ useFocusEffect(
           }
         }
       }
-      
+
       setMoodData(analyzedEntries);
-      
+
       // Calculate and update mood statistics
       const stats = moodAnalyzer.getMoodStats(analyzedEntries);
       setMoodStats(stats);
-      
     } catch (error) {
       console.error("❌ Error analyzing moods:", error);
     } finally {
@@ -425,11 +424,17 @@ useFocusEffect(
   // Get mood trend
   const getMoodTrend = () => {
     if (moodData.length < 3) return "stable";
-    
+
     const recentMoods = moodData.slice(0, 3);
-    const avgRecent = recentMoods.reduce((sum, mood) => sum + (mood.confidence || 0), 0) / recentMoods.length;
-    
-    return avgRecent > 80 ? "trending up" : avgRecent > 60 ? "stable" : "needs attention";
+    const avgRecent =
+      recentMoods.reduce((sum, mood) => sum + (mood.confidence || 0), 0) /
+      recentMoods.length;
+
+    return avgRecent > 80
+      ? "trending up"
+      : avgRecent > 60
+        ? "stable"
+        : "needs attention";
   };
 
   // Load data when component mounts or period changes
@@ -439,16 +444,24 @@ useFocusEffect(
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#A855F7" />
-        <Text style={styles.loadingText}>Loading your mood history...</Text>
+      <View className="flex-1 items-center justify-center bg-[#191825] px-4">
+        <View className="items-center space-y-4">
+          <Ionicons name="sparkles-outline" size={48} color="#A855F7" />
+          <ActivityIndicator size="large" color="#A855F7" />
+          <Text className="text-lg font-semibold text-gray-700">
+            Processing with AI...
+          </Text>
+          <Text className="text-sm text-gray-500">
+            Fetching your mood history
+          </Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <ScrollView 
-      style={styles.container} 
+    <ScrollView
+      style={styles.container}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -468,7 +481,11 @@ useFocusEffect(
           </View>
           <View style={styles.trendIndicator}>
             <Ionicons
-              name={getMoodTrend() === "trending up" ? "trending-up" : "trending-down"}
+              name={
+                getMoodTrend() === "trending up"
+                  ? "trending-up"
+                  : "trending-down"
+              }
               size={20}
               color={getMoodTrend() === "trending up" ? "#10B981" : "#EF4444"}
             />
@@ -483,7 +500,7 @@ useFocusEffect(
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.periodScrollContainer}
         >
-          {periods.map((period:any) => (
+          {periods.map((period: any) => (
             <TouchableOpacity
               key={period.key}
               style={[
@@ -501,7 +518,8 @@ useFocusEffect(
               <Text
                 style={[
                   styles.periodButtonText,
-                  selectedPeriod === period.key && styles.periodButtonTextActive,
+                  selectedPeriod === period.key &&
+                    styles.periodButtonTextActive,
                 ]}
               >
                 {period.label}
@@ -558,8 +576,10 @@ useFocusEffect(
         {moodData.length === 0 ? (
           <View style={styles.noDataContainer}>
             <Ionicons name="document-text-outline" size={48} color="#9CA3AF" />
-            <Text style={styles.noDataText}>No journal entries found</Text>
-            <Text style={styles.noDataSubtext}>
+            <Text style={styles.noDataText} className="mt-4 text-gray-500">
+              No journal entries found
+            </Text>
+            <Text style={styles.noDataSubtext} className="text-gray-500">
               Start writing to see your mood analysis
             </Text>
           </View>
@@ -624,12 +644,12 @@ useFocusEffect(
             <Text style={styles.insightTitle}>AI Insight</Text>
           </View>
           <Text style={styles.insightText}>
-            Based on your recent entries, your mood analysis shows {moodStats.average}% average confidence. 
-            Your dominant mood is {moodStats.dominant.toLowerCase()}. 
-            {getMoodTrend() === "trending up" 
+            Based on your recent entries, your mood analysis shows{" "}
+            {moodStats.average}% average confidence. Your dominant mood is{" "}
+            {moodStats.dominant.toLowerCase()}.
+            {getMoodTrend() === "trending up"
               ? "Your emotional state appears to be improving over time."
-              : "Consider implementing stress management techniques for better emotional balance."
-            }
+              : "Consider implementing stress management techniques for better emotional balance."}
           </Text>
         </View>
       )}
@@ -642,7 +662,7 @@ useFocusEffect(
 
 export default History;
 
- const styles:any = StyleSheet.create({
+const styles: any = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#111827",

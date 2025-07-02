@@ -170,10 +170,8 @@ const home = () => {
             </View>
             <View className="w-px h-12 bg-gray-600" />
             <View className="items-center flex-1">
-              <Text className="text-2xl font-bold text-green-400">
-                {stats?.positivePercent}%
-              </Text>
-              <Text className="text-sm text-gray-300 mt-1">Positive</Text>
+              <Text className="text-xs text-gray-400 mb-1">AI</Text>
+              <Ionicons name="wifi-outline" size={28} color="#34D399" />
             </View>
           </View>
         </View>
